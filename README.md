@@ -50,7 +50,7 @@ Pandasを用いたデータ集計の自動化
 
 ■ 実行方法
 
-pip install -r requirements.txt
+pip install flask pandas requests pykakasi
 
 python app.py
 
