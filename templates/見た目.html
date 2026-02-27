@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+    <meta charset="UTF-8">
+    <title>食品検索</title>
+    <link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+</head>
+<body>
+
+<h1>食品検索</h1>
+
+<form method="POST">
+    <input type="text" name="food_name" placeholder="食品名を入力">
+    <button type="submit">検索</button>
+</form>
+
+{% if message %}
+<p class="message">{{ message }}</p>
+{% endif %}
+
+{% if candidates %}
+<h2>候補一覧</h2>
+<ul>
+{% for item in candidates %}
+<li>
+<form method="POST">
+    <input type="hidden" name="select_name" value="{{ item }}">
+    <button type="submit">{{ item }}</button>
+</form>
+</li>
+{% endfor %}
+</ul>
+{% endif %}
+
+{% if selected_name %}
+<h2>{{ selected_name }} の栄養素</h2>
+
+<table>
+<tr><th>栄養素</th><th>量</th></tr>
+{% for r in result %}
+<tr>
+    <td>{{ r.name }}</td>
+    <td>{{ r.value }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<form method="POST" action="/add/{{ selected_name }}">
+    <label>量(g)</label>
+    <input type="number" name="gram" value="100" min="1">
+    <button type="submit">カートに追加</button>
+</form>
+{% endif %}
+
+<hr>
+
+<h2>カート内容</h2>
+{% if cart %}
+<table>
+<tr><th>食品名</th><th>量(g)</th></tr>
+{% for c in cart %}
+<tr>
+    <td>{{ c.name }}</td>
+    <td>{{ c.gram }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<a href="/total"><button>合計を見る</button></a>
+{% else %}
+<p>カートは空です。</p>
+{% endif %}
+
+</body>
+</html>

@@ -1,0 +1,166 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<title>合計栄養素</title>
+<link rel="stylesheet" href="{{ url_for('static', filename='style.css') }}">
+
+<style>
+.card {
+    padding: 16px;
+    margin: 16px 0;
+    border-radius: 10px;
+    background: #f9f9f9;
+}
+
+.flex {
+    display: flex;
+    gap: 16px;
+    flex-wrap: wrap;
+    align-items: flex-end;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+}
+
+th, td {
+    padding: 8px;
+    border-bottom: 1px solid #ddd;
+}
+
+/* ← 左詰め指定 */
+.left {
+    text-align: left;
+}
+
+.right {
+    text-align: right;
+}
+
+.diff.plus {
+    color: red;
+    font-weight: bold;
+}
+
+.diff.minus {
+    color: #1e88e5;   /* 青 */
+    font-weight: bold;
+}
+
+.diff.zero {
+    color: green;
+}
+</style>
+</head>
+<body>
+
+<h1>栄養素チェック</h1>
+
+<!-- =====================
+     選択中の食品（左詰め）
+===================== -->
+{% if cart %}
+<div class="card">
+<h2>選択中の食品</h2>
+
+<form method="POST">
+<table>
+<tr>
+    <th></th>
+    <th class="left">食品名</th>
+    <th class="left">量(g)</th>
+</tr>
+
+{% for item in cart %}
+<tr>
+    <td><input type="checkbox" name="delete_item" value="{{ loop.index0 }}"></td>
+    <td class="left">{{ item.name }}</td>
+    <td class="left">{{ item.gram }}</td>
+</tr>
+{% endfor %}
+</table>
+
+<div style="margin-top:10px;">
+    <button name="delete_selected">選択削除</button>
+    <button name="delete_all">全削除</button>
+</div>
+</form>
+</div>
+{% endif %}
+
+<!-- =====================
+     身体情報（身長＋体重）
+===================== -->
+<div class="card">
+<h2>身体情報</h2>
+
+<form method="POST" class="flex">
+<div>
+    <label>身長(cm)</label><br>
+    <input type="number" name="height" step="0.1" required>
+</div>
+
+<div>
+    <label>体重(kg)</label><br>
+    <input type="number" name="weight" step="0.1" required>
+</div>
+
+<div>
+    <button name="calc_required">必要量を計算</button>
+</div>
+</form>
+
+{% if bmi %}
+<p style="margin-top:10px;">
+    身長：{{ request.form.height }} cm　
+    体重：{{ request.form.weight }} kg　
+    BMI：{{ bmi }}　
+    （{{ kcal_factor }} kcal/kg）
+</p>
+{% endif %}
+</div>
+
+<!-- =====================
+     栄養素バランス
+===================== -->
+{% if required %}
+<div class="card">
+<h2>栄養素バランス</h2>
+
+<table>
+<tr>
+    <th class="left">栄養素</th>
+    <th class="right">合計</th>
+    <th class="right">必要量</th>
+    <th class="right">不足量</th>
+</tr>
+
+{% for col in cols %}
+{% set d = diff[col] %}
+<tr>
+    <td class="left">{{ col }}</td>
+    <td class="right">{{ total[col] }}</td>
+    <td class="right">{{ required[col] }}</td>
+    <td class="right diff
+        {% if diff.get(col, 0) < 0 %}minus
+    {% elif diff.get(col, 0) > 0 %}plus
+    {% else %}zero{% endif %}">
+
+    {% if diff.get(col, 0) < 0 %}
+        過多
+    {% else %}
+        {{ diff.get(col, "") }}
+    {% endif %}
+    </td>
+</tr>
+{% endfor %}
+</table>
+</div>
+{% endif %}
+
+<a href="{{ url_for('recipes_page') }}"> 選んだ食材に合うレシピを見る</a><br><a href="/">← 戻る</a>
+
+</body>
+</html>

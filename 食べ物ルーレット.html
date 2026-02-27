@@ -1,0 +1,174 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>はっきりカラールーレット</title>
+  <style>
+    body {
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      background: #fffaf5;
+      font-family: "Hiragino Maru Gothic ProN", "Segoe UI", sans-serif;
+      padding-top: 40px;
+    }
+    h2 { margin-bottom: 10px; font-size: 26px; color: #333; }
+    textarea {
+      width: 320px;
+      height: 120px;
+      padding: 12px;
+      font-size: 16px;
+      border-radius: 10px;
+      border: 1px solid #ccc;
+      resize: none;
+      margin-bottom: 10px;
+    }
+    #setFoods, #spin {
+      padding: 12px 30px;
+      color: white;
+      border: none;
+      border-radius: 10px;
+      cursor: pointer;
+      font-size: 18px;
+      margin-bottom: 20px;
+    }
+    #setFoods { background: #4caf50; }
+    #setFoods:hover { background: #43a047; }
+    #spin { background: #2196f3; }
+    #spin:hover { background: #1976d2; }
+    .roulette-container {
+      position: relative;
+      margin: 30px 0;
+    }
+    canvas {
+      border-radius: 50%;
+      box-shadow: 0 0 12px rgba(0,0,0,0.3);
+    }
+    .arrow {
+      position: absolute;
+      top: -35px;
+      left: 50%;
+      width: 0;
+      height: 0;
+      border-left: 20px solid transparent;
+      border-right: 20px solid transparent;
+      border-top: 35px solid red;
+      transform: translateX(-50%);
+    }
+    #result {
+      font-size: 22px;
+      font-weight: bold;
+      color: #333;
+    }
+  </style>
+</head>
+<body>
+  <h2>🍀 はっきりカラールーレット 🎯</h2>
+  <textarea id="foodInput" placeholder="例：寿司
+    ピザ
+    ラーメン
+    カレー"></textarea>
+  <button id="setFoods">ルーレットを作る</button>
+  <div class="roulette-container">
+    <div class="arrow"></div>
+    <canvas id="roulette" width="400" height="400"></canvas>
+  </div>
+  <button id="spin">回す！</button>
+  <div id="result"></div>
+
+  <script>
+    const canvas = document.getElementById("roulette");
+    const ctx = canvas.getContext("2d");
+    let foods = ["寿司", "ピザ", "ラーメン", "カレー"];
+    let colors = [];
+    let arc = (2 * Math.PI) / foods.length;
+    let startAngle = 0;
+    let spinning = false;
+
+    // 色を均等に分ける（はっきりした色調）
+    function generateDistinctColors(n) {
+      const colors = [];
+      for (let i = 0; i < n; i++) {
+        const hue = Math.round((360 / n) * i); // 均等に色相を分ける
+        const saturation = 80; // 鮮やかさ
+        const lightness = 65; // 明るさ（パステル寄り）
+        colors.push(`hsl(${hue}, ${saturation}%, ${lightness}%)`);
+      }
+      return colors;
+    }
+
+    function drawRoulette() {
+      const radius = canvas.width / 2;
+      ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+      for (let i = 0; i < foods.length; i++) {
+        const angle = startAngle + i * arc;
+        ctx.beginPath();
+        ctx.fillStyle = colors[i];
+        ctx.moveTo(radius, radius);
+        ctx.arc(radius, radius, radius, angle, angle + arc);
+        ctx.fill();
+
+        // テキスト描画
+        ctx.save();
+        ctx.translate(radius, radius);
+        ctx.rotate(angle + arc / 2);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#333";
+        ctx.font = "bold 15px sans-serif";
+        ctx.fillText(foods[i], radius - 40, 10);
+        ctx.restore();
+      }
+    }
+
+    function spinRoulette() {
+      if (spinning) return;
+      spinning = true;
+      document.getElementById("result").textContent = "";
+
+      let spinTime = 0;
+      const spinTimeTotal = Math.random() * 5000 + 9000;
+      const spinVelocity = Math.random() * 10 + 20;
+
+      function rotate() {
+        spinTime += 30;
+        if (spinTime >= spinTimeTotal) {
+          spinning = false;
+          calcResult();
+          return;
+        }
+        const easeOut = spinVelocity * Math.pow((1 - spinTime / spinTimeTotal), 2);
+        startAngle += (easeOut * Math.PI) / 180;
+        drawRoulette();
+        requestAnimationFrame(rotate);
+      }
+
+      rotate();
+    }
+
+    function calcResult() {
+      const degrees = (startAngle * 180) / Math.PI + 90;
+      const arcd = 360 / foods.length;
+      const index = Math.floor((360 - (degrees % 360)) / arcd) % foods.length;
+      const selected = foods[index];
+      document.getElementById("result").textContent = `🎯 結果：${selected}`;
+    }
+
+    document.getElementById("setFoods").addEventListener("click", () => {
+      const input = document.getElementById("foodInput").value.trim();
+      if (!input) return alert("食べ物を入力してください🍱");
+      foods = input.split(/\n+/).map(f => f.trim()).filter(f => f);
+      if (foods.length < 2) return alert("2つ以上の食べ物を入力してください🍜");
+      arc = (2 * Math.PI) / foods.length;
+      colors = generateDistinctColors(foods.length);
+      drawRoulette();
+    });
+
+    document.getElementById("spin").addEventListener("click", spinRoulette);
+
+    colors = generateDistinctColors(foods.length);
+    drawRoulette();
+  </script>
+</body>
+</html>

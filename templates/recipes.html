@@ -1,0 +1,132 @@
+<!doctype html>
+<html lang="ja">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>レシピ提案</title>
+  <style>
+    body { font-family: system-ui, -apple-system, "Segoe UI", Arial, sans-serif; margin: 16px; }
+    .box { border: 1px solid #ddd; border-radius: 10px; padding: 14px; margin-bottom: 14px; background:#fff; }
+    .pill { display:inline-block; padding:4px 10px; border-radius:999px; background:#f2f2f2; margin:4px 6px 0 0; font-size:12px; }
+    .muted { color:#666; font-size: 12px; }
+    .recipes { display:grid; grid-template-columns: repeat(auto-fill, minmax(320px, 1fr)); gap: 12px; }
+    .card { border:1px solid #e5e5e5; border-radius: 12px; padding: 12px; background:#fff; }
+    .title { font-weight: 700; margin: 0 0 6px 0; font-size: 15px; }
+    .meta { font-size: 12px; color:#555; margin-bottom:8px; }
+    ul { margin: 6px 0 0 18px; padding:0; }
+    img { max-width: 100%; height: auto; border-radius: 10px; border:1px solid #eee; }
+    a { color: #0a58ca; text-decoration: none; }
+    a:hover { text-decoration: underline; }
+    .debug { background:#fff7e6; border:1px solid #ffe2a8; padding:10px; border-radius:10px; margin-top:10px; }
+  </style>
+</head>
+<body>
+
+  <div class="box">
+    <div><b>カート食材：</b>
+      {% if ingredients and ingredients|length > 0 %}
+        {{ ingredients | join(" / ") }}
+      {% else %}
+        （なし）
+      {% endif %}
+    </div>
+
+    <div class="muted" style="margin-top:6px;">
+      <b>検索トークン：</b>
+      {% if tokens and tokens|length > 0 %}
+        {{ tokens | join(", ") }}
+      {% else %}
+        （なし）
+      {% endif %}
+    </div>
+
+    <div class="muted" style="margin-top:6px;">
+      <b>参照カテゴリ：</b>
+      {% if categories and categories|length > 0 %}
+        {% for c in categories %}
+          <span class="pill">{{ c["categoryName"] }}</span>
+        {% endfor %}
+      {% else %}
+        （なし）
+      {% endif %}
+    </div>
+
+    {% if message %}
+      <div style="margin-top:10px;"><b>{{ message }}</b></div>
+    {% endif %}
+
+    <div class="debug">
+      <div class="muted"><b>debug:</b> pool={{ debug_pool_count }}</div>
+      {% if debug_errors and debug_errors|length > 0 %}
+        <div class="muted" style="margin-top:6px;"><b>debug_errors:</b></div>
+        <ul class="muted">
+          {% for e in debug_errors %}
+            <li>{{ e }}</li>
+          {% endfor %}
+        </ul>
+      {% else %}
+        <div class="muted" style="margin-top:6px;">debug_errors: (none)</div>
+      {% endif %}
+      <div class="muted" style="margin-top:6px;">API疎通: <a href="/debug_api" target="_blank" rel="noopener">/debug_api</a></div>
+    </div>
+  </div>
+
+  {% if recipes and recipes|length > 0 %}
+    <div class="recipes">
+      {% for r in recipes %}
+        <div class="card">
+
+          {% if r.image %}
+            <img src="{{ r.image }}" alt="">
+          {% endif %}
+
+          <div class="title">
+            {% if r.url %}
+              <a href="{{ r.url }}" target="_blank" rel="noopener">{{ r.title }}</a>
+            {% else %}
+              {{ r.title }}
+            {% endif %}
+          </div>
+
+          <div class="meta">
+            {% if r.time %}⏱ {{ r.time }}　{% endif %}
+            {% if r.cost %}💴 {{ r.cost }}　{% endif %}
+            {% if r.category %}🏷 {{ r.category }}{% endif %}
+          </div>
+
+          <div class="muted">
+            {% if r.hit and r.hit > 0 %}
+              一致数: {{ r.hit }}
+              {% if r.hit_words and r.hit_words|length > 0 %}
+                ／ ヒット: {{ r.hit_words|join(", ") }}
+              {% endif %}
+            {% else %}
+              （近いレシピ候補）
+            {% endif %}
+          </div>
+
+          {% if r.materials and r.materials|length > 0 %}
+            <div style="margin-top:8px;"><b>材料</b></div>
+            <ul>
+              {% for m in r.materials %}
+                <li>{{ m }}</li>
+              {% endfor %}
+            </ul>
+          {% endif %}
+
+        </div>
+      {% endfor %}
+    </div>
+  {% else %}
+    <div class="box">
+      レシピがありません（候補取得に失敗している可能性があります）。
+    </div>
+  {% endif %}
+
+  <div style="margin-top:16px;">
+    <a href="/total">← 合計画面へ</a> /
+    <a href="/">検索へ</a>
+  </div>
+
+</body>
+</html>
