@@ -14,9 +14,7 @@ from flask import Flask, render_template, request, session, redirect, url_for
 app = Flask(__name__)
 app.secret_key = "your-secret-key"
 
-# =========================
 # 楽天レシピ API
-# =========================
 RAKUTEN_APP_ID = os.environ.get("RAKUTEN_APP_ID", "1083313192545553191")
 RAKUTEN_CATEGORY_LIST_URL = "https://app.rakuten.co.jp/services/api/Recipe/CategoryList/20170426"
 RAKUTEN_CATEGORY_RANKING_URL = "https://app.rakuten.co.jp/services/api/Recipe/CategoryRanking/20170426"
@@ -28,9 +26,7 @@ def _rakuten_get(url: str, params: dict):
     return res.json()
 
 
-# =========================
-# パス / CSV
-# =========================
+# CSV
 base_dir = os.path.dirname(__file__)
 CSV_PATH = os.path.join(base_dir, "data.csv")
 
@@ -58,9 +54,7 @@ units = {
     "備　　考": ""
 }
 
-# =========================
 # 数値
-# =========================
 def safe_float(v):
     try:
         return float(v)
@@ -71,9 +65,7 @@ def floor2(v):
     return math.floor(v * 100) / 100
 
 
-# =========================
 # 正規化
-# =========================
 def norm_basic(text: str) -> str:
     if not isinstance(text, str):
         return ""
@@ -92,10 +84,7 @@ def norm_reading(text: str) -> str:
     return _conv.do(norm_basic(text))
 
 
-# =========================
 # 同義語辞書（alias -> canon）
-# ※文字列replace連発しない（トークン単位で1回だけ）
-# =========================
 SYNONYMS = {
     # 鶏
     "鶏もも肉": ["鶏もも", "もも肉", "もも", "とりもも", "とりもも肉"],
@@ -156,15 +145,11 @@ def canon_token_reading(tok: str) -> str:
     return norm_reading(ALIAS_READING.get(t, tok))
 
 
-# =========================
 # 食品検索用（basic）
-# =========================
 df[food_col] = df[food_col].astype(str)
 df["__norm_name__"] = df[food_col].apply(norm_basic)
 
-# =========================
 # トークン化（スペース区切り優先）
-# =========================
 _token_splitter = re.compile(r"[^0-9a-zA-Zぁ-んァ-ヶ一-龠]+")
 _space_splitter = re.compile(r"[ \u3000]+")
 _noise_to_space = re.compile(r"[\[\]<>（）()\{\}「」『』【】・/\\:;.,|]+")
@@ -174,7 +159,6 @@ STOP_TOKENS_BASIC = {
     "畜肉類", "食肉類", "可食部", "加工", "冷凍", "冷蔵",
     "赤肉", "白肉", "生",
     "うし", "ぶた", "とり",
-    # ※ここは好み：分類語を当てたいなら消してOK
     "いも類", "塊茎", "皮つき",
 }
 
@@ -219,9 +203,7 @@ def extract_ingredient_tokens(names: list[str]) -> dict:
     return {"basic_tokens": basic_tokens, "reading_tokens": reading_tokens}
 
 
-# =========================
-# 楽天カテゴリ / ランキング取得
-# =========================
+# 楽天カテゴリ,ランキング取得
 @functools.lru_cache(maxsize=1)
 def fetch_all_recipe_categories() -> list[dict]:
     result = []
@@ -245,9 +227,7 @@ def fetch_recipes_by_category(category_id: str) -> list[dict]:
     return data.get("result", [])
 
 
-# =========================
 # カテゴリ横断：候補を集める
-# =========================
 CATEGORY_HINTS = [
     "牛", "豚", "鶏", "肉", "ビーフ", "ポーク", "チキン",
     "ステーキ", "焼肉", "ロースト", "ハンバーグ",
@@ -371,9 +351,7 @@ def collect_candidate_recipes(tokens_basic: list[str], min_pool: int = 140) -> t
     return pool, used_categories, errors
 
 
-# =========================
 # 合計計算
-# =========================
 def calc_total(cart):
     total = {col: 0.0 for col in numeric_cols}
     for item in cart:
@@ -392,9 +370,7 @@ def calc_total(cart):
     return {col: floor2(total[col]) for col in numeric_cols}
 
 
-# =========================
-# あいまいスコア（近いレシピ）
-# =========================
+#近いレシピ表示
 def fuzzy_score(tokens: list[str], target: str) -> float:
     if not tokens or not target:
         return 0.0
@@ -411,9 +387,7 @@ def fuzzy_score(tokens: list[str], target: str) -> float:
     return sum(bests[:5])
 
 
-# =========================
 # 画面：検索
-# =========================
 @app.route("/", methods=["GET", "POST"])
 def index():
     if "cart" not in session:
@@ -461,9 +435,7 @@ def index():
     )
 
 
-# =========================
 # カート追加
-# =========================
 @app.route("/add/<name>", methods=["POST"])
 def add_cart(name):
     gram = safe_float(request.form.get("gram", 100))
@@ -473,9 +445,7 @@ def add_cart(name):
     return redirect(url_for("index"))
 
 
-# =========================
 # 合計画面
-# =========================
 @app.route("/total", methods=["GET", "POST"])
 def total_page():
     cart = session.get("cart", [])
@@ -540,14 +510,7 @@ def total_page():
     )
 
 
-# =========================
 # レシピ提案
-# - カテゴリ横断で候補を集める
-# - レシピ名 + 材料 を参照
-# - トークンは OR（1語でも部分一致でOK）
-# - 0件なら近いレシピ2件
-# - 失敗理由を debug として画面へ
-# =========================
 @app.route("/recipes", methods=["GET"])
 def recipes_page():
     cart = session.get("cart", [])
@@ -583,7 +546,6 @@ def recipes_page():
 
         matched_tokens = []
 
-        # ★ OR条件：トークン1つでも部分一致でOK
         for t in basic_tokens:
             if t and t in target_basic:
                 matched_tokens.append(t)
@@ -638,9 +600,7 @@ def recipes_page():
     )
 
 
-# =========================
-# API疎通チェック（ブラウザで /debug_api）
-# =========================
+# API疎通チェック
 @app.route("/debug_api")
 def debug_api():
     out = {
